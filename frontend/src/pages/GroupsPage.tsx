@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useGroups } from "../context/GroupContext";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
+import { findGroupByCode } from "../api/groupApi";
 import {
   RiAddLine,
   RiGroupLine,
@@ -11,16 +12,49 @@ import {
   RiCloseLine,
   RiArrowRightLine,
   RiTimeLine,
+  RiHashtag,
+  RiSearch2Line,
+  RiLockPasswordLine,
+  RiFileCopyLine,
 } from "react-icons/ri";
 
 const GroupsPage: React.FC = () => {
   const { groups, invitations, loadingGroups, createGroup, respondInvitation } =
     useGroups();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [saving, setSaving] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+  const [codeSearching, setCodeSearching] = useState(false);
+  const [codeError, setCodeError] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyCode = (e: React.MouseEvent, code: string, groupId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedId(groupId);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
+  const handleFindByCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!codeInput.trim()) return;
+    setCodeSearching(true);
+    setCodeError("");
+    try {
+      const res = await findGroupByCode(codeInput.trim().toUpperCase());
+      navigate(`/groups/${res.data._id}`);
+    } catch {
+      setCodeError("No group found with that code. Check and try again.");
+    } finally {
+      setCodeSearching(false);
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +87,42 @@ const GroupsPage: React.FC = () => {
         >
           <RiAddLine size={16} /> New Group
         </button>
+      </div>
+
+      {/* Find by code */}
+      <div className="card p-4">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+          <RiSearch2Line size={15} className="text-primary-500" /> Join a Group
+          by Code
+        </h3>
+        <form onSubmit={handleFindByCode} className="flex gap-2">
+          <div className="relative flex-1">
+            <RiLockPasswordLine
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={14}
+            />
+            <input
+              className="input pl-8 py-2 text-sm uppercase tracking-widest font-mono"
+              placeholder="ABC123XYZ"
+              value={codeInput}
+              onChange={(e) => {
+                setCodeInput(e.target.value.toUpperCase());
+                setCodeError("");
+              }}
+              maxLength={9}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={codeSearching || !codeInput.trim()}
+            className="btn-primary text-sm py-2 px-4 disabled:opacity-50"
+          >
+            {codeSearching ? "…" : "Find"}
+          </button>
+        </form>
+        {codeError && (
+          <p className="text-xs text-red-500 mt-1.5">{codeError}</p>
+        )}
       </div>
 
       {/* Create form */}
@@ -124,6 +194,11 @@ const GroupsPage: React.FC = () => {
                     Invited by {inv.invitedBy.name} ·{" "}
                     {format(new Date(inv.createdAt), "MMM d")}
                   </p>
+                  {inv.message && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic bg-gray-100 dark:bg-gray-700/50 px-2 py-1 rounded-lg border-l-2 border-primary-300 dark:border-primary-700">
+                      “{inv.message}”
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-1.5">
                   <button
@@ -178,8 +253,28 @@ const GroupsPage: React.FC = () => {
                 className="card p-5 hover:-translate-y-0.5 hover:shadow-md transition-all group flex flex-col gap-3"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                    {g.name[0].toUpperCase()}
+                  <div className="w-11 h-11 rounded-xl flex-shrink-0 overflow-hidden">
+                    {g.avatar ? (
+                      <img
+                        src={`${import.meta.env.VITE_API_URL ?? "http://localhost:5000"}${g.avatar}`}
+                        alt={g.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display =
+                            "none";
+                          (
+                            e.currentTarget
+                              .nextElementSibling as HTMLElement | null
+                          )?.style.setProperty("display", "flex");
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 items-center justify-center text-white font-bold text-lg"
+                      style={{ display: g.avatar ? "none" : "flex" }}
+                    >
+                      {g.name[0].toUpperCase()}
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 dark:text-white truncate">
@@ -211,6 +306,31 @@ const GroupsPage: React.FC = () => {
                     </span>
                   )}
                 </div>
+                {g.code && (
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="flex items-center gap-1.5 font-mono tracking-widest text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                      <RiHashtag size={11} className="text-primary-400" />
+                      {g.code}
+                    </span>
+                    <button
+                      onClick={(e) => copyCode(e, g.code!, g._id)}
+                      title="Copy invite code"
+                      className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-500 border border-gray-200 dark:border-gray-700 transition-colors"
+                    >
+                      {copiedId === g._id ? (
+                        <>
+                          <RiCheckLine size={12} className="text-green-500" />
+                          <span className="text-green-500">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <RiFileCopyLine size={12} />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </Link>
             );
           })}

@@ -12,10 +12,7 @@ import ForgotPassword from "./components/Auth/ForgotPassword";
 import ResetPassword from "./components/Auth/ResetPassword";
 import DashboardPage from "./pages/DashboardPage";
 import AllTasksPage from "./pages/AllTasksPage";
-import ActivePage from "./pages/ActivePage";
-import CompletedPage from "./pages/CompletedPage";
 import TodayPage from "./pages/TodayPage";
-import OverduePage from "./pages/OverduePage";
 import AccountPage from "./pages/AccountPage";
 import GroupsPage from "./pages/GroupsPage";
 import GroupDetailPage from "./pages/GroupDetailPage";
@@ -50,10 +47,10 @@ const AppRoutes = () => {
       >
         <Route index element={<DashboardPage />} />
         <Route path="tasks" element={<AllTasksPage />} />
-        <Route path="active" element={<ActivePage />} />
-        <Route path="completed" element={<CompletedPage />} />
+        <Route path="active" element={<Navigate to="/tasks" replace />} />
+        <Route path="completed" element={<Navigate to="/tasks" replace />} />
+        <Route path="overdue" element={<Navigate to="/tasks" replace />} />
         <Route path="today" element={<TodayPage />} />
-        <Route path="overdue" element={<OverduePage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="groups" element={<GroupsPage />} />
         <Route path="groups/:id" element={<GroupDetailPage />} />

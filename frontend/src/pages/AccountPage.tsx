@@ -92,10 +92,11 @@ const AccountPage: React.FC = () => {
     }
   };
 
+  const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
   const avatarSrc = user?.avatar
-    ? user.avatar.startsWith("/uploads")
-      ? `http://localhost:5000${user.avatar}`
-      : user.avatar
+    ? user.avatar.startsWith("http")
+      ? user.avatar
+      : `${BASE}${user.avatar.startsWith("/") ? "" : "/uploads/avatars/"}${user.avatar}`
     : null;
 
   const initials = user?.name
@@ -121,6 +122,9 @@ const AccountPage: React.FC = () => {
                 src={avatarSrc}
                 alt="avatar"
                 className="w-20 h-20 rounded-full object-cover ring-2 ring-primary-500/30"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
               />
             ) : (
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-2xl font-bold">

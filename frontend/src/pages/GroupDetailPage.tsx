@@ -18,6 +18,9 @@ import {
   RiUserLine,
   RiGroupLine,
   RiTaskLine,
+  RiHashtag,
+  RiFileCopyLine,
+  RiCameraLine,
 } from "react-icons/ri";
 
 const PRIORITY_COLORS = {
@@ -50,15 +53,22 @@ const GroupDetailPage: React.FC = () => {
     deleteGroupTask,
     assignMember,
     respondAssignment,
+    uploadGroupAvatar,
   } = useGroups();
 
   const [group, setGroup] = useState<Group | null>(null);
   const [tasks, setTasks] = useState<GroupTask[]>([]);
   const [tab, setTab] = useState<"tasks" | "members">("tasks");
   const [loading, setLoading] = useState(true);
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  // avatar upload
+  const avatarFileRef = React.useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // invite
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
   const [showInvite, setShowInvite] = useState(false);
   const [inviting, setInviting] = useState(false);
 
@@ -120,13 +130,28 @@ const GroupDetailPage: React.FC = () => {
     e.preventDefault();
     setInviting(true);
     try {
-      await inviteMember(group._id, inviteEmail);
+      await inviteMember(group._id, inviteEmail, inviteMessage);
       setInviteEmail("");
+      setInviteMessage("");
       setShowInvite(false);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed");
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !group) return;
+    setAvatarUploading(true);
+    try {
+      await uploadGroupAvatar(group._id, file);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Upload failed");
+    } finally {
+      setAvatarUploading(false);
+      if (avatarFileRef.current) avatarFileRef.current.value = "";
     }
   };
 
@@ -197,8 +222,40 @@ const GroupDetailPage: React.FC = () => {
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-              {group.name[0]}
+            {/* Group avatar with upload */}
+            <div className="relative group/avatar flex-shrink-0">
+              {group.avatar ? (
+                <img
+                  src={`${import.meta.env.VITE_API_URL ?? "http://localhost:5000"}${group.avatar}`}
+                  alt={group.name}
+                  className="w-12 h-12 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-xl">
+                  {group.name[0]}
+                </div>
+              )}
+              {canManage && (
+                <button
+                  onClick={() => avatarFileRef.current?.click()}
+                  className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center"
+                  title="Change group avatar"
+                  disabled={avatarUploading}
+                >
+                  {avatarUploading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <RiCameraLine className="text-white" size={16} />
+                  )}
+                </button>
+              )}
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -208,6 +265,38 @@ const GroupDetailPage: React.FC = () => {
                 <p className="text-sm text-gray-500 mt-0.5">
                   {group.description}
                 </p>
+              )}
+              {group.code && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="inline-flex items-center gap-1.5 font-mono tracking-widest text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                    <RiHashtag size={11} className="text-primary-400" />
+                    {group.code}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(group.code!);
+                      setCodeCopied(true);
+                      setTimeout(() => setCodeCopied(false), 2000);
+                    }}
+                    title="Copy invite code"
+                    className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-500 border border-gray-200 dark:border-gray-700 transition-colors"
+                  >
+                    {codeCopied ? (
+                      <>
+                        <RiCheckLine size={12} className="text-green-500" />
+                        <span className="text-green-500">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <RiFileCopyLine size={12} />
+                        <span>Copy code</span>
+                      </>
+                    )}
+                  </button>
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">
+                    Share this code so others can join
+                  </span>
+                </div>
               )}
             </div>
           </div>
@@ -251,34 +340,52 @@ const GroupDetailPage: React.FC = () => {
 
       {/* Invite form */}
       {showInvite && (
-        <form onSubmit={handleInvite} className="card p-4 flex gap-2 fade-up">
-          <RiUserAddLine
-            className="text-gray-400 mt-2.5 flex-shrink-0"
-            size={16}
-          />
-          <input
-            className="input flex-1"
-            type="email"
-            placeholder="Enter email to invite…"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            required
-            autoFocus
-          />
-          <button
-            type="button"
-            onClick={() => setShowInvite(false)}
-            className="btn-ghost text-sm"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={inviting}
-            className="btn-primary text-sm py-1.5"
-          >
-            {inviting ? "Sending…" : "Send Invite"}
-          </button>
+        <form onSubmit={handleInvite} className="card p-4 space-y-3 fade-up">
+          <div className="flex gap-2">
+            <RiUserAddLine
+              className="text-gray-400 mt-2.5 flex-shrink-0"
+              size={16}
+            />
+            <input
+              className="input flex-1"
+              type="email"
+              placeholder="Enter email to invite…"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+          <div className="ml-6">
+            <textarea
+              className="input resize-none text-sm"
+              rows={2}
+              placeholder="Add a personal message (optional)…"
+              value={inviteMessage}
+              onChange={(e) => setInviteMessage(e.target.value)}
+              maxLength={300}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowInvite(false);
+                setInviteMessage("");
+                setInviteEmail("");
+              }}
+              className="btn-ghost text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={inviting}
+              className="btn-primary text-sm py-1.5"
+            >
+              {inviting ? "Sending…" : "Send Invite"}
+            </button>
+          </div>
         </form>
       )}
 

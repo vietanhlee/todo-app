@@ -70,6 +70,7 @@ export interface Group {
   name: string;
   description: string;
   avatar?: string;
+  code?: string;
   owner: User;
   members: GroupMember[];
   createdAt: string;
@@ -81,6 +82,7 @@ export interface GroupInvite {
   groupId: { _id: string; name: string; description: string };
   invitedBy: User;
   inviteeEmail: string;
+  message?: string;
   status: "pending" | "accepted" | "rejected";
   expiresAt: string;
   createdAt: string;

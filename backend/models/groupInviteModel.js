@@ -19,6 +19,7 @@ const groupInviteSchema = new mongoose.Schema(
       default: null,
     },
     inviteeEmail: { type: String, default: "" },
+    message: { type: String, default: "" },
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected"],

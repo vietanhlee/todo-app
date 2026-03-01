@@ -1,14 +1,10 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import {
   RiDashboardLine,
   RiListCheck2,
-  RiCheckboxCircleLine,
   RiCalendarTodoLine,
-  RiAlarmWarningLine,
-  RiPlayCircleLine,
   RiGroupLine,
-  RiUserSettingsLine,
 } from "react-icons/ri";
 import { useTaskContext } from "../../context/TaskContext";
 import { useGroups } from "../../context/GroupContext";
@@ -30,57 +26,30 @@ const navItems = [
     filter: "all",
   },
   {
-    to: "/active",
-    label: "Active",
-    icon: RiPlayCircleLine,
-    end: false,
-    filter: "active",
-  },
-  {
-    to: "/completed",
-    label: "Completed",
-    icon: RiCheckboxCircleLine,
-    end: false,
-    filter: "completed",
-  },
-  {
     to: "/today",
     label: "Today",
     icon: RiCalendarTodoLine,
     end: false,
     filter: "today",
   },
-  {
-    to: "/overdue",
-    label: "Overdue",
-    icon: RiAlarmWarningLine,
-    end: false,
-    filter: "overdue",
-  },
 ] as const;
 
 const Sidebar: React.FC = () => {
-  const {
-    stats,
-    categories,
-    selectedCategory,
-    setSelectedCategory,
-    setFilter,
-  } = useTaskContext();
+  const { stats, setFilter } = useTaskContext();
   const { groups, invitations } = useGroups();
 
   return (
     <aside className="w-64 shrink-0 bg-white dark:bg-[#111827] border-r border-gray-100 dark:border-gray-800/50 flex flex-col overflow-y-auto">
       {/* Logo */}
       <div className="px-5 pt-6 pb-4">
-        <div className="flex items-center gap-3 px-1">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md shadow-primary-500/30">
+        <Link to="/" className="flex items-center gap-3 px-1 group">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md shadow-primary-500/30 group-hover:shadow-primary-500/50 transition-shadow">
             <span className="text-white text-sm font-bold">T</span>
           </div>
           <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">
-            TaskFlow
+            TODOAPP
           </span>
-        </div>
+        </Link>
       </div>
 
       {/* Nav */}
@@ -116,43 +85,10 @@ const Sidebar: React.FC = () => {
                   <Icon size={16} />
                 </span>
                 <span className="flex-1">{label}</span>
-                {label === "Overdue" && stats?.overdue ? (
-                  <span className="text-[10px] font-bold bg-red-500 text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                    {stats.overdue}
-                  </span>
-                ) : label === "Active" && stats?.active ? (
-                  <span className="text-[10px] font-bold bg-amber-400 text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                    {stats.active}
-                  </span>
-                ) : null}
               </>
             )}
           </NavLink>
         ))}
-
-        {/* Categories */}
-        {categories.length > 1 && (
-          <>
-            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest px-3 mb-1 mt-4">
-              Categories
-            </p>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={clsx(
-                  "w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150",
-                  selectedCategory === cat
-                    ? "bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400"
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-800 dark:hover:text-gray-200",
-                )}
-              >
-                <span className="w-2 h-2 rounded-full bg-current opacity-60 ml-1.5" />
-                {cat}
-              </button>
-            ))}
-          </>
-        )}
 
         {/* Groups + Account links */}
         <p className="text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-widest px-3 mb-1 mt-4">
@@ -164,12 +100,6 @@ const Sidebar: React.FC = () => {
             label: "Groups",
             icon: RiGroupLine,
             badge: invitations.length,
-          },
-          {
-            to: "/account",
-            label: "Account",
-            icon: RiUserSettingsLine,
-            badge: 0,
           },
         ].map(({ to, label, icon: Icon, badge }) => (
           <NavLink

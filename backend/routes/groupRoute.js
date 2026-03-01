@@ -1,6 +1,9 @@
 import express from "express";
 import requireAuth from "../middleware/requireAuth.js";
-import { uploadOutcome } from "../middleware/upload.js";
+import {
+  uploadOutcome,
+  uploadGroupAvatar as uploadGroupAvatarMiddleware,
+} from "../middleware/upload.js";
 import {
   getMyGroups,
   createGroup,
@@ -19,6 +22,8 @@ import {
   assignMember,
   respondAssignment,
   addGroupTaskOutcome,
+  findGroupByCode,
+  uploadGroupAvatar,
 } from "../controllers/groupController.js";
 
 const router = express.Router();
@@ -26,8 +31,15 @@ const router = express.Router();
 // groups CRUD
 router.get("/", requireAuth, getMyGroups);
 router.post("/", requireAuth, createGroup);
+router.get("/find/:code", requireAuth, findGroupByCode);
 router.get("/:id", requireAuth, getGroup);
 router.put("/:id", requireAuth, updateGroup);
+router.post(
+  "/:id/avatar",
+  requireAuth,
+  uploadGroupAvatarMiddleware,
+  uploadGroupAvatar,
+);
 router.delete("/:id", requireAuth, deleteGroup);
 
 // membership

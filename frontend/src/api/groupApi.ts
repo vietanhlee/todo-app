@@ -5,6 +5,8 @@ import { Group, GroupInvite, GroupTask } from "../types";
 export const getMyGroups = () => api.get<Group[]>("/group");
 export const createGroup = (data: { name: string; description?: string }) =>
   api.post<Group>("/group", data);
+export const findGroupByCode = (code: string) =>
+  api.get<Group>(`/group/find/${code}`);
 export const getGroup = (id: string) => api.get<Group>(`/group/${id}`);
 export const updateGroup = (
   id: string,
@@ -16,8 +18,11 @@ export const removeMember = (groupId: string, memberId: string) =>
   api.delete(`/group/${groupId}/members/${memberId}`);
 
 // invitations
-export const inviteMember = (groupId: string, email: string) =>
-  api.post(`/group/${groupId}/invite`, { email });
+export const inviteMember = (
+  groupId: string,
+  email: string,
+  message?: string,
+) => api.post(`/group/${groupId}/invite`, { email, message });
 export const getMyInvitations = () =>
   api.get<GroupInvite[]>("/group/invitations/mine");
 export const respondInvitation = (
@@ -63,3 +68,11 @@ export const addGroupTaskOutcome = (
   api.post<GroupTask>(`/group/${groupId}/tasks/${taskId}/outcomes`, data, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+
+export const uploadGroupAvatar = (groupId: string, file: File) => {
+  const form = new FormData();
+  form.append("avatar", file);
+  return api.post<import("../types").Group>(`/group/${groupId}/avatar`, form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};

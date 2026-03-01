@@ -32,6 +32,11 @@ export const uploadAvatar = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter,
 }).single("avatar");
+export const uploadGroupAvatar = multer({
+  storage: storage("avatars"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter,
+}).single("avatar");
 export const uploadOutcome = multer({
   storage: storage("outcomes"),
   limits: { fileSize: 20 * 1024 * 1024 },

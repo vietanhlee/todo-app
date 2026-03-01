@@ -24,7 +24,11 @@ interface GroupContextType {
   deleteGroup: (id: string) => Promise<void>;
   leaveGroup: (id: string) => Promise<void>;
   removeMember: (groupId: string, memberId: string) => Promise<void>;
-  inviteMember: (groupId: string, email: string) => Promise<void>;
+  inviteMember: (
+    groupId: string,
+    email: string,
+    message?: string,
+  ) => Promise<void>;
   respondInvitation: (
     inviteId: string,
     action: "accept" | "reject",
@@ -51,6 +55,7 @@ interface GroupContextType {
     action: string,
     note?: string,
   ) => Promise<GroupTask>;
+  uploadGroupAvatar: (groupId: string, file: File) => Promise<void>;
 }
 
 const GroupContext = createContext<GroupContextType | undefined>(undefined);
@@ -124,10 +129,13 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
     [],
   );
 
-  const inviteMember = useCallback(async (groupId: string, email: string) => {
-    await groupApi.inviteMember(groupId, email);
-    toast.success("Invitation sent!");
-  }, []);
+  const inviteMember = useCallback(
+    async (groupId: string, email: string, message?: string) => {
+      await groupApi.inviteMember(groupId, email, message);
+      toast.success("Invitation sent!");
+    },
+    [],
+  );
 
   const respondInvitation = useCallback(
     async (inviteId: string, action: "accept" | "reject") => {
@@ -193,6 +201,12 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
     [],
   );
 
+  const uploadGroupAvatar = useCallback(async (groupId: string, file: File) => {
+    const res = await groupApi.uploadGroupAvatar(groupId, file);
+    setGroups((prev) => prev.map((g) => (g._id === groupId ? res.data : g)));
+    toast.success("Group avatar updated!");
+  }, []);
+
   return (
     <GroupContext.Provider
       value={{
@@ -214,6 +228,7 @@ export const GroupProvider = ({ children }: { children: ReactNode }) => {
         deleteGroupTask,
         assignMember,
         respondAssignment,
+        uploadGroupAvatar,
       }}
     >
       {children}

@@ -33,6 +33,7 @@ interface TaskContextType {
   removeOutcome: (taskId: string, outcomeId: string) => Promise<void>;
   filteredTasks: Task[];
   categories: string[];
+  allTags: string[];
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -135,6 +136,10 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     ...Array.from(new Set(tasks.map((t) => t.category).filter(Boolean))),
   ];
 
+  const allTags = Array.from(
+    new Set(tasks.flatMap((t) => t.tags ?? []).filter(Boolean)),
+  );
+
   const filteredTasks = tasks
     .filter((t) => {
       if (filter === "active") return !t.completed;
@@ -202,6 +207,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
         removeOutcome,
         filteredTasks,
         categories,
+        allTags,
       }}
     >
       {children}

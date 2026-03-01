@@ -6,6 +6,20 @@ import { v4 as uuidv4 } from "uuid";
 
 // ── Groups ─────────────────────────────────────────────────────────────────
 
+// GET /api/group/find/:code  — find group by short code
+export const findGroupByCode = async (req, res) => {
+  try {
+    const code = req.params.code.toUpperCase().trim();
+    const group = await Group.findOne({ code })
+      .populate("owner", "name email avatar")
+      .populate("members.userId", "name email avatar");
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    res.json(group);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
 // GET /api/group  — list groups the user belongs to or owns
 export const getMyGroups = async (req, res) => {
   try {
@@ -76,6 +90,31 @@ export const updateGroup = async (req, res) => {
   }
 };
 
+// POST /api/group/:id/avatar  — upload group avatar (owner/admin)
+export const uploadGroupAvatar = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    const member = group.members.find(
+      (m) => m.userId.toString() === req.user.id,
+    );
+    if (!member || !["owner", "admin"].includes(member.role))
+      return res
+        .status(403)
+        .json({ message: "Only owner/admin can update avatar" });
+    group.avatar = `/uploads/avatars/${req.file.filename}`;
+    await group.save();
+    const populated = await group.populate([
+      { path: "owner", select: "name email avatar" },
+      { path: "members.userId", select: "name email avatar" },
+    ]);
+    res.json(populated);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
 // DELETE /api/group/:id  — delete group (owner only)
 export const deleteGroup = async (req, res) => {
   try {
@@ -98,12 +137,9 @@ export const leaveGroup = async (req, res) => {
     const group = await Group.findById(req.params.id);
     if (!group) return res.status(404).json({ message: "Group not found" });
     if (group.owner.toString() === req.user.id)
-      return res
-        .status(400)
-        .json({
-          message:
-            "Owner cannot leave. Transfer ownership or delete the group.",
-        });
+      return res.status(400).json({
+        message: "Owner cannot leave. Transfer ownership or delete the group.",
+      });
     group.members = group.members.filter(
       (m) => m.userId.toString() !== req.user.id,
     );
@@ -140,7 +176,7 @@ export const removeMember = async (req, res) => {
 
 // POST /api/group/:id/invite  — invite by email
 export const inviteMember = async (req, res) => {
-  const { email } = req.body;
+  const { email, message } = req.body;
   if (!email) return res.status(400).json({ message: "Email required" });
   try {
     const group = await Group.findById(req.params.id);
@@ -169,6 +205,7 @@ export const inviteMember = async (req, res) => {
       invitedBy: req.user.id,
       inviteeId: invitee?._id || null,
       inviteeEmail: email,
+      message: message || "",
       token: uuidv4(),
     }).save();
 
